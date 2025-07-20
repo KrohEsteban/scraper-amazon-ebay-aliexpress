@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Comparador de Precios - Hockey Equipment</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .tabs {
+            margin-bottom: 30px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .tab {
+            padding: 15px 30px;
+            font-weight: 500;
+            color: #3498db;
+            border-bottom: 3px solid #3498db;
+        }
+
+        .url-input-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .url-input-group {
+            margin-bottom: 20px;
+        }
+
+        .url-input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .url-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .url-input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .add-url-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s ease;
+        }
+
+        .add-url-btn:hover {
+            background: #229954;
+        }
+
+        .remove-url-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .remove-url-btn:hover {
+            background: #c0392b;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #e67e22;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.875em;
+        }
+
+        .btn-outline-secondary {
+            background: transparent;
+            color: #6c757d;
+            border: 1px solid #6c757d;
+        }
+
+        .btn-outline-secondary:hover {
+            background: #6c757d;
+            color: white;
+        }
+
+
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results-section {
+            margin-top: 30px;
+        }
+
+        /* Estilos para lista de productos */
+        .products-list {
+            background: #f8f9fa;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        .product-item {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .product-item:hover {
+            background: #f8f9fa;
+            transform: translateX(5px);
+        }
+
+        .product-item:last-child {
+            border-bottom: none;
+        }
+
+        .product-item.success {
+            border-left: 4px solid #27ae60;
+        }
+
+        .product-item.error {
+            border-left: 4px solid #e74c3c;
+        }
+
+        .product-item.warning {
+            border-left: 4px solid #f39c12;
+        }
+
+        .product-image {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+
+        .no-image {
+            width: 80px;
+            height: 80px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #7f8c8d;
+            font-style: italic;
+            margin-right: 20px;
+            flex-shrink: 0;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .product-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .product-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .product-details {
+            display: grid;
+            grid-template-columns: 1fr auto auto auto auto;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .price-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 8px;
+            border-radius: 6px;
+            background: #f8f9fa;
+            min-width: 80px;
+        }
+
+        .price-column.original {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+        }
+
+        .price-column.with-tax {
+            background: #fff3e0;
+            border: 1px solid #ffcc02;
+        }
+
+        .price-column.in-pesos {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+        }
+
+        .price-label {
+            font-size: 0.8em;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .price-value {
+            font-size: 1.1em;
+            font-weight: 700;
+        }
+
+        .price-value.original {
+            color: #1976d2;
+        }
+
+        .price-value.with-tax {
+            color: #f57c00;
+        }
+
+        .price-value.in-pesos {
+            color: #388e3c;
+        }
+
+        .price-value.per-unit {
+            color: #9b59b6;
+            font-weight: 600;
+        }
+
+        .product-price {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #27ae60;
+        }
+
+        .product-company {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+
+        .product-price {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #27ae60;
+        }
+
+        .platform-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: white;
+        }
+
+        .platform-amazon { background: #ff9900; }
+        .platform-ebay { background: #86b817; }
+        .platform-aliexpress { background: #ff4747; }
+
+        .currency-warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .currency-info {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .cache-info {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            color: #1565c0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .product-url {
+            font-size: 0.9em;
+            color: #3498db;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: help;
+        }
+
+        .url-link {
+            color: #3498db;
+            text-decoration: underline;
+            cursor: pointer;
+            transition: color 0.2s ease;
+            font-family: monospace;
+            font-size: 1em;
+        }
+
+        .url-link:hover {
+            color: #2980b9;
+            text-decoration: none;
+        }
+
+        .product-checkbox {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #3498db;
+        }
+
+        .product-item {
+            position: relative;
+        }
+
+        .totals-section {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .total-item {
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .total-label {
+            font-size: 0.9em;
+            color: #6c757d;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .total-value {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .total-value.usd {
+            color: #28a745;
+        }
+
+        .total-value.pesos {
+            color: #007bff;
+        }
+
+        .total-value.tax {
+            color: #dc3545;
+        }
+
+        .error-message {
+            background: #fdf2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .stats {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+
+
+
+        .filters {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .filter-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .filter-option input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+
+        .filter-option label {
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 20px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .product-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .product-image, .no-image {
+                margin-right: 0;
+                margin-bottom: 15px;
+            }
+
+            .product-details {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .price-column {
+                min-width: auto;
+                width: 100%;
+            }
+
+            .filters > div {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Comparador de Precios</h1>
+            <p>Compara precios de equipamiento de hockey en Amazon, eBay y AliExpress</p>
+        </div>
+
+        <div class="main-content">
+            <div class="tabs">
+                <div class="tab active">⚖️ Comparación de Precios</div>
+            </div>
+
+            <div class="url-input-section">
+                <h3>📋 Agregar URLs de Productos</h3>
+                <p style="color: #7f8c8d; margin-bottom: 20px;">
+                    Agrega hasta 10 URLs de productos para comparar precios. Soporta Amazon, eBay y AliExpress.
+                </p>
+                
+                <div id="url-inputs">
+                    <div class="url-input-group">
+                        <label>URL del producto #1:</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="url" class="url-input" placeholder="https://www.amazon.com/dp/... o https://www.ebay.com/itm/... o https://es.aliexpress.com/item/...">
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <label style="font-size: 12px; color: #666; white-space: nowrap;">Cantidad:</label>
+                                <input type="number" class="quantity-input" value="1" min="1" max="100" style="width: 60px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="add-url-btn" onclick="addUrlInput()">➕ Agregar otra URL</button>
+            </div>
+
+            <div class="filters">
+                <h4>⚙️ Configuración de Cálculos</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px;">
+                    <div>
+                        <label for="tax-rate">Impuestos de Importación (%):</label>
+                        <input type="number" id="tax-rate" value="50" min="0" max="100" step="1" 
+                               onchange="updateConfig()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <div>
+                        <label for="exchange-rate">Tasa USD a ARS:</label>
+                        <input type="number" id="exchange-rate" value="1200" min="1" step="1" 
+                               onchange="updateConfig()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                </div>
+                <small style="color: #666;">Los cambios se aplican automáticamente a los cálculos. La cantidad de productos se especifica individualmente por cada URL.</small>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="compareProducts()">⚖️ Comparar Precios</button>
+                <button class="btn btn-secondary" onclick="clearAll()">🗑️ Limpiar Todo</button>
+                <button class="btn btn-warning" onclick="clearCache()">🔄 Limpiar Caché</button>
+            </div>
+
+            <div id="totals-section" class="totals-section">
+                <div class="total-item">
+                    <div class="total-label">Total USD</div>
+                    <div class="total-value usd" id="total-usd">$0.00</div>
+                </div>
+                <div class="total-item">
+                    <div class="total-label">Total USD + Impuestos</div>
+                    <div class="total-value tax" id="total-usd-tax">$0.00</div>
+                </div>
+                <div class="total-item">
+                    <div class="total-label">Total Pesos</div>
+                    <div class="total-value pesos" id="total-pesos">$0</div>
+                </div>
+                <div class="total-item">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="toggleAllProducts()" id="toggle-all-btn">
+                        ☑️ Seleccionar Todos
+                    </button>
+                </div>
+            </div>
+
+            <div id="comparison-results" class="results-section"></div>
+        </div>
+    </div>
+
+    <script>
+        let urlCount = 1;
+
+
+
+        function addUrlInput() {
+            if (urlCount >= 10) {
+                alert('Máximo 10 URLs permitidas');
+                return;
+            }
+
+            urlCount++;
+            const container = document.getElementById('url-inputs');
+            const newInput = document.createElement('div');
+            newInput.className = 'url-input-group';
+            newInput.innerHTML = `
+                <label>URL del producto #${urlCount}:</label>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="url" class="url-input" placeholder="https://www.amazon.com/dp/... o https://www.ebay.com/itm/... o https://es.aliexpress.com/item/...">
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <label style="font-size: 12px; color: #666; white-space: nowrap;">Cantidad:</label>
+                        <input type="number" class="quantity-input" value="1" min="1" max="100" style="width: 60px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <button class="remove-url-btn" onclick="removeUrlInput(this)">🗑️</button>
+                </div>
+            `;
+            container.appendChild(newInput);
+        }
+
+        function removeUrlInput(button) {
+            button.closest('.url-input-group').remove();
+            urlCount--;
+            updateUrlNumbers();
+        }
+
+        function updateUrlNumbers() {
+            const inputs = document.querySelectorAll('#url-inputs .url-input-group');
+            inputs.forEach((input, index) => {
+                const label = input.querySelector('label');
+                label.textContent = `URL del producto #${index + 1}:`;
+            });
+            urlCount = inputs.length;
+        }
+
+        // Configuración de impuestos y conversión
+        let CONFIG = {
+            IMPORT_TAX_RATE: 0.5,  // 50% de impuestos
+            USD_TO_ARS_RATE: 1200  // Conversión USD a ARS
+        };
+
+        // Función para actualizar configuración
+        function updateConfig() {
+            const taxRate = parseFloat(document.getElementById('tax-rate').value) / 100;
+            const exchangeRate = parseFloat(document.getElementById('exchange-rate').value);
+            
+            CONFIG.IMPORT_TAX_RATE = taxRate;
+            CONFIG.USD_TO_ARS_RATE = exchangeRate;
+            
+            // Recalcular si hay resultados mostrados
+            const resultsContainer = document.getElementById('comparison-results');
+            if (resultsContainer.innerHTML && !resultsContainer.innerHTML.includes('loading')) {
+                // Recargar los resultados con nueva configuración
+                const urlInputs = document.querySelectorAll('#url-inputs .url-input');
+                const urls = Array.from(urlInputs)
+                    .map(input => input.value.trim())
+                    .filter(url => url !== '');
+                
+                if (urls.length > 0) {
+                    compareProducts();
+                }
+            }
+        }
+
+        // Función para calcular precio con impuestos
+        function calculatePriceWithTax(price) {
+            if (!price || price === 'No encontrado') return 'N/A';
+            const numericPrice = parseFloat(price.toString().replace(/[^\d.,]/g, '').replace(',', '.'));
+            if (isNaN(numericPrice)) return 'N/A';
+            return (numericPrice * (1 + CONFIG.IMPORT_TAX_RATE)).toFixed(2);
+        }
+
+        // Función para convertir a pesos argentinos
+        function convertToPesos(priceWithTax) {
+            if (priceWithTax === 'N/A') return 'N/A';
+            const numericPrice = parseFloat(priceWithTax);
+            if (isNaN(numericPrice)) return 'N/A';
+            return (numericPrice * CONFIG.USD_TO_ARS_RATE).toFixed(0);
+        }
+
+        // Función para calcular precio por unidad
+        function calculatePricePerUnit(priceInPesos, quantity) {
+            if (priceInPesos === 'N/A') return 'N/A';
+            const numericPrice = parseFloat(priceInPesos.replace(/\./g, ''));
+            if (isNaN(numericPrice)) return 'N/A';
+            const pricePerUnit = numericPrice / quantity;
+            return Math.round(pricePerUnit).toLocaleString('es-AR');
+        }
+
+        // Función para obtener URL corta
+        function getShortUrl(url) {
+            try {
+                const urlObj = new URL(url);
+                
+                // Mostrar solo el pathname (ruta sin dominio ni parámetros)
+                const path = urlObj.host + urlObj.pathname;
+                
+                return path;
+                
+            } catch (error) {
+                return 'URL inválida';
+            }
+        }
+
+        // Función para verificar si el precio está en dólares
+        function isPriceInDollars(price, currency) {
+            if (!price || price === 'No encontrado') return false;
+            
+            // Verificar moneda
+            if (currency && currency.toUpperCase() === 'USD') return true;
+            if (currency && currency === '$') return true;
+            if (currency && currency.toUpperCase() === 'US') return true;
+            
+            // Verificar si el precio tiene símbolo de dólar
+            if (typeof price === 'string' && price.includes('$')) return true;
+            
+            // Verificar patrones específicos de precios en dólares
+            if (typeof price === 'string') {
+                const dollarPatterns = [
+                    /\$[\d,]+\.?\d*/i,  // $123.45 o $123
+                    /US\$\s*[\d,]+\.?\d*/i,  // US$ 123.45
+                    /USD\s*[\d,]+\.?\d*/i,   // USD 123.45
+                    /[\d,]+\.?\d*\s*USD/i,   // 123.45 USD
+                    /[\d,]+\.?\d*\s*US/i     // 123.45 US
+                ];
+                
+                return dollarPatterns.some(pattern => pattern.test(price));
+            }
+            
+            return false;
+        }
+
+        async function compareProducts() {
+            const urlInputs = document.querySelectorAll('#url-inputs .url-input-group');
+            const products = Array.from(urlInputs).map(group => {
+                const urlInput = group.querySelector('.url-input');
+                const quantityInput = group.querySelector('.quantity-input');
+                return {
+                    url: urlInput.value.trim(),
+                    quantity: parseInt(quantityInput.value) || 1
+                };
+            }).filter(product => product.url !== '');
+
+            if (products.length === 0) {
+                alert('Por favor, agrega al menos una URL');
+                return;
+            }
+
+            if (products.length > 10) {
+                alert('Máximo 10 URLs permitidas');
+                return;
+            }
+
+            showLoading('comparison-results', 'Comparando productos...');
+
+            try {
+                const response = await fetch('/api/compare', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ products })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showComparisonResults(data);
+                } else {
+                    showError('comparison-results', data.error);
+                }
+            } catch (error) {
+                showError('comparison-results', 'Error de conexión: ' + error.message);
+            }
+        }
+
+
+
+        function showComparisonResults(data) {
+            const container = document.getElementById('comparison-results');
+            
+            let html = `
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-number">${data.totalUrls}</div>
+                        <div class="stat-label">Total URLs</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" style="color: #27ae60;">${data.successful}</div>
+                        <div class="stat-label">Exitosos</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" style="color: #e74c3c;">${data.failed}</div>
+                        <div class="stat-label">Fallidos</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" style="color: #3498db;">${data.duration}</div>
+                        <div class="stat-label">Duración</div>
+                    </div>
+                </div>
+            `;
+
+            if (data.results.length > 0) {
+
+
+
+
+
+                // Lista de productos
+                html += '<div class="products-list" id="products-list">';
+                
+                // Mostrar todos los productos (sin filtros)
+                data.results.forEach((result, index) => {
+                    if (result.success) {
+                        const isDollar = isPriceInDollars(result.data.Precio, result.data.Moneda);
+                        const itemClass = isDollar ? 'success' : 'warning';
+                        const quantity = data.quantities ? data.quantities[index] : 1;
+                        html += createProductListItem(result, itemClass, quantity);
+                    }
+                });
+
+                // Mostrar errores
+                data.errors.forEach(error => {
+                    html += createErrorListItem(error);
+                });
+
+                html += '</div>';
+            }
+
+            if (data.errors.length > 0 && data.results.length === 0) {
+                html += '<h3 style="margin-top: 30px; color: #e74c3c;">❌ Errores:</h3>';
+                data.errors.forEach(error => {
+                    html += `
+                        <div class="error-message">
+                            <strong>${error.platform.toUpperCase()}:</strong> ${error.error}
+                            <br><small>${error.url}</small>
+                        </div>
+                    `;
+                });
+            }
+
+            container.innerHTML = html;
+        }
+
+
+
+        function createProductListItem(result, itemClass, quantity = 1) {
+            const { url, platform, data, success, fromCache, ttl } = result;
+            
+            if (!success) {
+                return createErrorListItem(result);
+            }
+
+            const isDollar = isPriceInDollars(data.Precio, data.Moneda);
+            const imageHtml = data.Imagen && data.Imagen !== null 
+                ? `<img src="${data.Imagen}" alt="Producto" class="product-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
+                : '';
+
+            const noImageHtml = `<div class="no-image" style="display: ${data.Imagen && data.Imagen !== null ? 'none' : 'flex'};">🖼️ No disponible</div>`;
+
+            const currencyWarning = !isDollar ? `
+                <div class="currency-warning">
+                    ⚠️ Precio no está en USD: ${data.Moneda} ${data.Precio}
+                </div>
+            ` : '';
+            
+            const currencyInfo = isDollar ? `
+                <div class="currency-info">
+                    ✅ Precio en USD: ${data.Moneda} ${data.Precio}
+                </div>
+            ` : '';
+
+            // Calcular precios adicionales solo para productos en USD
+            const priceWithTax = isDollar ? calculatePriceWithTax(data.Precio) : 'N/A';
+            const priceInPesos = isDollar ? convertToPesos(priceWithTax) : 'N/A';
+            const pricePerUnit = isDollar ? calculatePricePerUnit(priceInPesos, quantity) : 'N/A';
+
+            return `
+                <div class="product-item ${itemClass}" data-currency="${isDollar ? 'dollar' : 'other'}">
+                    <input type="checkbox" class="product-checkbox" onchange="updateTotals()" data-usd="${isDollar ? data.Precio : 0}" data-usd-tax="${isDollar ? priceWithTax : 0}" data-pesos="${isDollar ? priceInPesos : 0}">
+                    ${imageHtml}
+                    ${noImageHtml}
+                    <div class="product-info">
+                        <div class="product-title">${data.Producto || 'No encontrado'}</div>
+                        <div class="product-details">
+                            <div class="price-column original">
+                                <div class="price-label">Precio Original</div>
+                                <div class="price-value original">${data.Moneda || ''} ${data.Precio || 'No encontrado'}</div>
+                            </div>
+                            <div class="price-column with-tax">
+                                <div class="price-label">Con Impuestos</div>
+                                <div class="price-value with-tax">$${priceWithTax}</div>
+                            </div>
+                            <div class="price-column in-pesos">
+                                <div class="price-label">En Pesos</div>
+                                <div class="price-value in-pesos">$${priceInPesos}</div>
+                            </div>
+                            <div class="price-column per-unit">
+                                <div class="price-label">Por Unidad (×${quantity})</div>
+                                <div class="price-value per-unit">$${pricePerUnit}</div>
+                            </div>
+                        </div>
+                        <div class="product-company">${data.Empresa || 'No encontrado'}</div>
+                        ${currencyWarning}
+                        ${currencyInfo}
+                        <div class="product-url">
+                            <a href="${url}" target="_blank" class="url-link" title="Abrir producto en nueva pestaña">
+                                ${getShortUrl(url)}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createErrorListItem(error) {
+            return `
+                <div class="product-item error">
+                    <div class="no-image">❌</div>
+                    <div class="product-info">
+                        <div class="product-title">Error al procesar</div>
+                        <div class="product-details">
+                            <div class="platform-badge platform-${error.platform}">${error.platform}</div>
+                        </div>
+                        <div class="error-message">
+                            <strong>Error:</strong> ${error.error}
+                        </div>
+                        <div class="product-url">
+                            <a href="${error.url}" target="_blank" class="url-link" title="Abrir producto en nueva pestaña">
+                                ${getShortUrl(error.url)}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+
+
+        function showLoading(containerId, message) {
+            document.getElementById(containerId).innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        function showError(containerId, message) {
+            document.getElementById(containerId).innerHTML = `
+                <div class="error-message">
+                    <strong>Error:</strong> ${message}
+                </div>
+            `;
+        }
+
+        function clearAll() {
+            document.querySelectorAll('#url-inputs .url-input').forEach(input => {
+                input.value = '';
+            });
+            document.querySelectorAll('#url-inputs .quantity-input').forEach(input => {
+                input.value = '1';
+            });
+            document.getElementById('comparison-results').innerHTML = '';
+            urlCount = 1;
+            updateUrlNumbers();
+            updateTotals();
+        }
+
+        function updateTotals() {
+            const checkboxes = document.querySelectorAll('.product-checkbox:checked');
+            let totalUSD = 0;
+            let totalUSDTax = 0;
+            let totalPesos = 0;
+
+            checkboxes.forEach(checkbox => {
+                totalUSD += parseFloat(checkbox.dataset.usd) || 0;
+                totalUSDTax += parseFloat(checkbox.dataset.usdTax) || 0;
+                totalPesos += parseFloat(checkbox.dataset.pesos) || 0;
+            });
+
+            // Siempre mostrar la sección de totales
+            document.getElementById('total-usd').textContent = `$${totalUSD.toFixed(2)}`;
+            document.getElementById('total-usd-tax').textContent = `$${totalUSDTax.toFixed(2)}`;
+            document.getElementById('total-pesos').textContent = `$${Math.round(totalPesos).toLocaleString('es-AR')}`;
+        }
+
+        function toggleAllProducts() {
+            const allCheckboxes = document.querySelectorAll('.product-checkbox');
+            const checkedCheckboxes = document.querySelectorAll('.product-checkbox:checked');
+            const toggleBtn = document.getElementById('toggle-all-btn');
+            
+            // Si todos están seleccionados, deseleccionar todos
+            if (checkedCheckboxes.length === allCheckboxes.length) {
+                allCheckboxes.forEach(checkbox => checkbox.checked = false);
+                toggleBtn.innerHTML = '☑️ Seleccionar Todos';
+            } else {
+                // Si no todos están seleccionados, seleccionar todos
+                allCheckboxes.forEach(checkbox => checkbox.checked = true);
+                toggleBtn.innerHTML = '☐ Deseleccionar Todos';
+            }
+            
+            updateTotals();
+        }
+
+        async function clearCache() {
+            if (!confirm('¿Estás seguro de que quieres limpiar todo el caché? Esto forzará que se vuelvan a scrapear todos los productos.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/cache/clear', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Caché limpiado exitosamente\n${data.deleted} elementos eliminados`);
+                } else {
+                    alert('❌ Error al limpiar caché: ' + data.error);
+                }
+            } catch (error) {
+                alert('❌ Error de conexión: ' + error.message);
+            }
+        }
+
+
+
+
+
+        // Permitir Enter para enviar
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                compareProducts();
+            }
+        });
+    </script>
+</body>
+</html> 
