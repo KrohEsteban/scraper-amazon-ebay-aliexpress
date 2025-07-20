@@ -6,11 +6,11 @@ Un sistema completo para comparar precios de equipamiento de hockey en las princ
 
 ### ✨ **Funcionalidades Principales**
 - **Comparación múltiple**: Compara hasta 10 productos simultáneamente
-- **Scraping individual**: Extrae datos detallados de un producto específico
-- **Interfaz moderna**: Diseño responsive y intuitivo
+- **Sistema de caché**: Almacena resultados por 30 minutos para mejorar performance
 - **Validación robusta**: Verificación de URLs y datos extraídos
-- **Logging avanzado**: Sistema de logs con colores y categorías
+- **Logging centralizado**: Sistema de logs con colores y categorías por plataforma
 - **Manejo de errores**: Gestión completa de errores y excepciones
+- **Interfaz web**: Frontend moderno y responsive
 
 ### 🎯 **Plataformas Soportadas**
 - **Amazon** (amazon.com, amazon.es, etc.)
@@ -20,17 +20,21 @@ Un sistema completo para comparar precios de equipamiento de hockey en las princ
 ### 📊 **Datos Extraídos**
 - **Producto**: Nombre/título del producto
 - **Precio**: Precio actual con moneda
+- **Precio Original**: Precio sin descuento (si aplica)
+- **Descuento**: Porcentaje de descuento (si aplica)
 - **Empresa**: Vendedor o plataforma
 - **Imagen**: Imagen del producto (si está disponible)
 - **URL**: Enlace original del producto
+- **Categoría**: Categoría del producto
 
 ## 🏗️ Arquitectura
 
 ### **Estructura del Proyecto**
 ```
-cursor-view-pracing-hockey-equipament/
+scraper-amazon-ebay-aliexpress/
 ├── server.js                 # Servidor principal con API
 ├── package.json              # Dependencias del proyecto
+├── config.js                 # Configuración del proyecto
 ├── README.md                 # Documentación
 ├── scrapers/                 # Módulos de scraping
 │   ├── aliexpress.js         # Scraper para AliExpress
@@ -38,20 +42,20 @@ cursor-view-pracing-hockey-equipament/
 │   └── ebay.js               # Scraper para eBay
 ├── utils/                    # Utilidades compartidas
 │   ├── validators.js         # Validaciones de datos
-│   └── logger.js             # Sistema de logging
-├── public/                   # Frontend estático
-│   ├── index.html            # Interfaz principal
-│   ├── css/                  # Estilos CSS
-│   └── js/                   # JavaScript del frontend
-└── data/                     # Datos temporales
+│   ├── logger.js             # Sistema de logging centralizado
+│   ├── cache.js              # Sistema de caché
+│   └── urlCleaner.js         # Limpieza de URLs
+└── public/                   # Frontend estático
+    └── index.html            # Interfaz principal
 ```
 
 ### **Tecnologías Utilizadas**
 - **Backend**: Node.js + Express.js
 - **Frontend**: HTML5 + CSS3 + JavaScript (Vanilla)
 - **Scraping**: Puppeteer + Cheerio
+- **Caché**: node-cache
 - **Validación**: Utilidades personalizadas
-- **Logging**: Sistema de logs con colores
+- **Logging**: Sistema de logs con colores por plataforma
 
 ## 🚀 Instalación y Uso
 
@@ -63,7 +67,7 @@ cursor-view-pracing-hockey-equipament/
 ```bash
 # Clonar el repositorio
 git clone <repository-url>
-cd cursor-view-pracing-hockey-equipament
+cd scraper-amazon-ebay-aliexpress
 
 # Instalar dependencias
 npm install
@@ -74,10 +78,8 @@ npm start
 
 ### **Uso**
 1. **Abrir el navegador** en `http://localhost:5000`
-2. **Seleccionar el modo**:
-   - **Comparación Múltiple**: Comparar varios productos
-   - **Producto Individual**: Extraer datos de un producto
-3. **Agregar URLs** de productos de Amazon, eBay o AliExpress
+2. **Agregar URLs** de productos de Amazon, eBay o AliExpress
+3. **Especificar cantidades** (opcional, default: 1)
 4. **Ejecutar la comparación** y ver los resultados
 
 ## 📡 API Endpoints
@@ -88,38 +90,64 @@ Health check del servidor
 {
   "status": "OK",
   "timestamp": "2024-01-01T00:00:00.000Z",
-  "version": "2.0.0"
-}
-```
-
-### **GET /api/info**
-Información del API
-```json
-{
-  "name": "Price Scraper API",
-  "version": "2.0.0",
-  "description": "API para extraer precios de Amazon, eBay y AliExpress",
-  "endpoints": {...},
-  "supportedPlatforms": ["amazon", "ebay", "aliexpress"]
-}
-```
-
-### **POST /api/scrape**
-Extraer datos de una URL
-```json
-{
-  "url": "https://www.amazon.com/dp/..."
+  "version": "2.2.0"
 }
 ```
 
 ### **POST /api/compare**
-Comparar múltiples URLs
+Comparar múltiples productos
+```json
+{
+  "products": [
+    {
+      "url": "https://www.amazon.com/dp/...",
+      "quantity": 1
+    },
+    {
+      "url": "https://www.ebay.com/itm/...",
+      "quantity": 2
+    },
+    {
+      "url": "https://es.aliexpress.com/item/...",
+      "quantity": 1
+    }
+  ]
+}
+```
+
+**Respuesta:**
+```json
+{
+  "success": true,
+  "totalUrls": 3,
+  "successful": 2,
+  "failed": 1,
+  "results": [...],
+  "errors": [...],
+  "quantities": [1, 2, 1],
+  "duration": "1500ms",
+  "timestamp": "2024-01-01T00:00:00.000Z"
+}
+```
+
+### **POST /api/cache/clear**
+Limpiar todo el caché
+```json
+{
+  "success": true,
+  "message": "Caché limpiado exitosamente",
+  "deleted": 15,
+  "timestamp": "2024-01-01T00:00:00.000Z"
+}
+```
+
+### **POST /api/cache/refresh**
+Forzar actualización de URLs específicas
 ```json
 {
   "urls": [
     "https://www.amazon.com/dp/...",
-    "https://www.ebay.com/itm/...",
-    "https://es.aliexpress.com/item/..."
+    "https://www.ebay.com/itm/..."
   ]
 }
 ```
@@ -128,24 +156,24 @@ Comparar múltiples URLs
 
 ### **Interfaz Moderna**
 - **Diseño responsive** que funciona en móviles y desktop
-- **Tabs intuitivos** para diferentes funcionalidades
-- **Animaciones suaves** y efectos hover
-- **Colores por plataforma** (Amazon: naranja, eBay: verde, AliExpress: rojo)
-
-### **Funcionalidades UX**
-- **Agregar/remover URLs** dinámicamente
+- **Formulario dinámico** para agregar/remover productos
 - **Validación en tiempo real** de URLs
 - **Loading states** con spinners
 - **Manejo de errores** con mensajes claros
-- **Comparación automática** de precios
-- **Detección del mejor precio** automática
+
+### **Funcionalidades UX**
+- **Agregar/remover productos** dinámicamente
+- **Especificar cantidades** por producto
+- **Validación de URLs** antes del envío
+- **Resultados organizados** por plataforma
+- **Información de caché** (TTL, hit/miss)
 
 ### **Resultados Visuales**
 - **Cards de productos** con toda la información
 - **Estadísticas de comparación** (total, exitosos, fallidos)
 - **Badges de plataforma** para identificación rápida
 - **Imágenes de productos** con fallback elegante
-- **Mensajes de error** detallados
+- **Información de descuentos** cuando aplica
 
 ## 🔧 Configuración
 
@@ -155,12 +183,31 @@ PORT=5000                    # Puerto del servidor (default: 5000)
 NODE_ENV=development         # Entorno de ejecución
 ```
 
-### **Personalización**
-- **Límite de URLs**: Modificar en `server.js` línea 108
-- **Timeouts**: Ajustar en los scrapers individuales
-- **Estilos**: Editar CSS en `public/index.html`
+### **Configuración del Caché**
+- **TTL**: 30 minutos por defecto
+- **Verificación**: Cada 10 minutos
+- **Estadísticas**: Hits, misses, sets, deletes
+
+### **Límites y Restricciones**
+- **Máximo 10 productos** por comparación
+- **Timeouts de 30 segundos** por URL
+- **Rate limiting** implícito para evitar bloqueos
 
 ## 🛠️ Desarrollo
+
+### **Sistema de Logging**
+```javascript
+const Logger = require('./utils/logger');
+const logger = new Logger('PLATFORM');
+
+logger.info('Mensaje informativo');
+logger.success('Operación exitosa');
+logger.warning('Advertencia');
+logger.error('Error encontrado');
+logger.debug('Información de debug');
+logger.step(1, 'Paso específico');
+logger.result(data);
+```
 
 ### **Estructura de Scrapers**
 Cada scraper sigue el mismo patrón:
@@ -175,22 +222,30 @@ async function scrapePlatform(url) {
     Empresa: "Plataforma/Vendedor",
     Precio: "123.45",
     Moneda: "USD",
+    PrecioOriginal: "150.00",
+    Descuento: "18%",
     Imagen: "URL de imagen",
     Url: "URL original"
   };
 }
 ```
 
-### **Sistema de Logging**
+### **Sistema de Caché**
 ```javascript
-const Logger = require('./utils/logger');
-const logger = new Logger('PLATFORM');
+const ProductCache = require('./utils/cache');
+const cache = new ProductCache();
 
-logger.info('Mensaje informativo');
-logger.success('Operación exitosa');
-logger.warning('Advertencia');
-logger.error('Error encontrado');
-logger.debug('Información de debug');
+// Guardar en caché
+cache.set(url, data);
+
+// Obtener del caché
+const data = cache.get(url);
+
+// Verificar TTL
+const ttl = cache.getTTL(url);
+
+// Estadísticas
+const stats = cache.getStats();
 ```
 
 ### **Validaciones**
@@ -210,37 +265,49 @@ const validation = validateScrapedData(data);
 ## 🚨 Consideraciones Importantes
 
 ### **AliExpress**
-- **Captcha manual**: Es posible que necesites completar captchas manualmente
-- **Navegador visible**: Se abre un navegador visible para evitar bloqueos
-- **Timeouts largos**: Puede tomar más tiempo debido a las protecciones
+- **Detección de CAPTCHA**: Sistema automático de detección
+- **Fallback inteligente**: Datos hardcodeados cuando hay CAPTCHA
+- **Extracción desde URL**: Precios extraídos directamente de la URL
+- **Meta tags**: Títulos e imágenes desde og:title y og:image
 
-### **Límites y Restricciones**
-- **Máximo 10 URLs** por comparación
-- **Timeouts de 30 segundos** por URL
-- **Rate limiting** implícito para evitar bloqueos
+### **Amazon**
+- **Múltiples métodos**: 6 estrategias diferentes de extracción
+- **Selectores específicos**: Optimizados para la estructura de Amazon
+- **JSON-LD**: Extracción desde datos estructurados
+- **Fallbacks robustos**: Múltiples niveles de fallback
+
+### **eBay**
+- **Selectores modernos**: Compatible con la nueva interfaz de eBay
+- **DisplayPrice**: Extracción desde scripts específicos de eBay
+- **JSON-LD**: Datos estructurados cuando están disponibles
+- **Patrones de texto**: Fallback con patrones de precio
 
 ### **Manejo de Errores**
 - **URLs inválidas**: Validación automática
 - **Plataformas no soportadas**: Mensaje claro
 - **Errores de red**: Reintentos automáticos
 - **Datos faltantes**: Fallbacks elegantes
+- **CAPTCHA**: Detección y manejo automático
 
 ## 🔮 Próximas Mejoras
 
 ### **Funcionalidades Planificadas**
-- [ ] **Persistencia de datos**: Guardar comparaciones
+- [ ] **Persistencia de datos**: Base de datos para guardar comparaciones
 - [ ] **Historial de búsquedas**: Ver comparaciones anteriores
 - [ ] **Notificaciones de precio**: Alertas cuando baje el precio
 - [ ] **Exportación de datos**: CSV, JSON, PDF
 - [ ] **Filtros avanzados**: Por precio, plataforma, etc.
 - [ ] **Gráficos de precios**: Visualización temporal
+- [ ] **API rate limiting**: Protección contra abuso
+- [ ] **Autenticación**: Sistema de usuarios
 
 ### **Mejoras Técnicas**
 - [ ] **Base de datos**: MongoDB/PostgreSQL
-- [ ] **Autenticación**: Sistema de usuarios
-- [ ] **API rate limiting**: Protección contra abuso
-- [ ] **Caché**: Redis para mejorar performance
+- [ ] **Redis**: Caché distribuido
 - [ ] **Tests**: Suite de pruebas automatizadas
+- [ ] **Docker**: Containerización
+- [ ] **CI/CD**: Pipeline de despliegue
+- [ ] **Monitoreo**: Métricas y alertas
 
 ## 📝 Licencia
 
@@ -261,8 +328,8 @@ Las contribuciones son bienvenidas. Por favor:
 Si tienes problemas o preguntas:
 
 - **Issues**: Abre un issue en GitHub
-- **Email**: [tu-email@ejemplo.com]
 - **Documentación**: Revisa este README
+- **Logs**: Revisa los logs del servidor para debugging
 
 ---
 

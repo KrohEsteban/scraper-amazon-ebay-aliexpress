@@ -1,21 +1,119 @@
 const puppeteer = require('puppeteer');
 const cheerio = require('cheerio');
-const { extractTitle, extractImage, extractCompany, extractUrl } = require('./common');
+const Logger = require('../utils/logger');
+
+// Crear logger para Amazon
+const logger = new Logger('AMAZON');
+
+// --- Funciones específicas de Amazon ---
+
+async function extractTitle(page, $) {
+  try {
+    // Buscar en meta tags primero (más confiable)
+    const ogTitle = $('meta[property="og:title"]').attr('content');
+    if (ogTitle && ogTitle.length > 0) {
+      const cleanTitle = ogTitle.replace(/\s*[-|]\s*Amazon\s*\d*$/, '').trim();
+      if (cleanTitle) return cleanTitle;
+    }
+    
+    const twitterTitle = $('meta[name="twitter:title"]').attr('content');
+    if (twitterTitle && twitterTitle.length > 0) {
+      const cleanTitle = twitterTitle.replace(/\s*[-|]\s*Amazon\s*\d*$/, '').trim();
+      if (cleanTitle) return cleanTitle;
+    }
+    
+    // Buscar en selectores específicos de Amazon
+    const platformSelectors = [
+      '#productTitle',
+      '.product-title',
+      'h1[data-automation-id="product-title"]',
+      '.a-size-large.product-title-word-break',
+      '.a-size-large.a-spacing-none.a-color-base'
+    ];
+    
+    for (const selector of platformSelectors) {
+      const title = $(selector).first().text().trim();
+      if (title && title.length > 0) return title;
+    }
+    
+    // Fallback a title tag
+    const title = $('title').text().trim();
+    if (title && title.length > 0) {
+      const cleanTitle = title.replace(/\s*[-|]\s*Amazon\s*\d*$/, '').trim();
+      if (cleanTitle) return cleanTitle;
+    }
+    
+    return 'Sin nombre';
+  } catch (e) {
+    return 'Sin nombre';
+  }
+}
+
+async function extractImage(page, $) {
+  let imagen = '';
+  
+  // Buscar en meta tags (más confiable)
+  imagen = $('meta[property="og:image"]').attr('content') || '';
+  if (imagen) return imagen;
+  
+  imagen = $('meta[name="twitter:image"]').attr('content') || '';
+  if (imagen) return imagen;
+  
+  // Buscar en el DOM con selectores específicos de Amazon
+  const domSelectors = [
+    '#landingImage',
+    '#imgBlkFront',
+    '#main-image',
+    '.a-dynamic-image',
+    'img[data-old-hires]',
+    'img[data-a-dynamic-image]',
+    'img[alt*="product"]',
+    'img[alt*="Product"]',
+    'img[alt*="main"]',
+    'img[alt*="Main"]',
+    '.a-image-container img',
+    '.a-image-stretch-vertical img',
+    '.a-image-stretch-horizontal img',
+    '.a-image-stretch img'
+  ];
+  
+  for (const selector of domSelectors) {
+    try {
+      imagen = $(selector).first().attr('src') || $(selector).first().attr('data-src') || '';
+      if (imagen && imagen.length > 0) break;
+    } catch (e) {}
+  }
+  
+  return imagen || '';
+}
+
+function extractCompany() {
+  return 'Amazon';
+}
+
+function extractUrl(url) {
+  try {
+    const urlObj = new URL(url);
+    return `${urlObj.protocol}//${urlObj.hostname}${urlObj.pathname}`;
+  } catch (error) {
+    return url;
+  }
+}
 
 // --- Función específica de Amazon para precio y moneda ---
 
 async function extractPriceAndCurrencyAmazon(page, $) {
   let precio = null, moneda = null;
   
-  console.log('=== INICIANDO EXTRACCIÓN DE PRECIO AMAZON ===');
+  logger.info('=== INICIANDO EXTRACCIÓN DE PRECIO AMAZON ===');
   
   // 0. Buscar precio principal en .a-offscreen (más confiable)
-  console.log('0. Buscando precio principal en .a-offscreen...');
+  logger.info('0. Buscando precio principal en .a-offscreen...');
   try {
     const offscreenElements = await page.$$('.a-offscreen');
     for (let i = 0; i < offscreenElements.length; i++) {
       const offscreenText = await page.evaluate(el => el.textContent, offscreenElements[i]);
-      console.log(`Offscreen ${i + 1}: "${offscreenText}"`);
+      logger.debug(`Offscreen ${i + 1}: "${offscreenText}"`);
       
       if (offscreenText && offscreenText.includes('$')) {
         const match = offscreenText.match(/([\$€£¥₹])([0-9.,]+)/);
@@ -24,13 +122,13 @@ async function extractPriceAndCurrencyAmazon(page, $) {
           precio = match[2].replace(',', '');
           const currencyMap = { '$': 'USD', '€': 'EUR', '£': 'GBP', '¥': 'JPY', '₹': 'INR' };
           moneda = currencyMap[symbol];
-          console.log(`✓ Precio principal encontrado en offscreen: ${moneda} ${precio}`);
+          logger.info(`✓ Precio principal encontrado en offscreen: ${moneda} ${precio}`);
           return { precio, moneda };
         }
       }
     }
   } catch (e) {
-    console.log('Error en offscreen:', e.message);
+    logger.error('Error en offscreen:', e.message);
   }
   
   // 1. Selectores principales de Amazon (más específicos)
@@ -51,13 +149,13 @@ async function extractPriceAndCurrencyAmazon(page, $) {
     '.a-price .a-offscreen + .a-price-fraction' // Combinación offscreen + fraction
   ];
   
-  console.log('1. Buscando en selectores principales...');
+  logger.info('1. Buscando en selectores principales...');
   for (const selector of mainPriceSelectors) {
     try {
       const priceEl = await page.$(selector);
       if (priceEl) {
         const priceText = await page.evaluate(el => el.textContent, priceEl);
-        console.log(`Selector ${selector}: "${priceText}"`);
+        logger.debug(`Selector ${selector}: "${priceText}"`);
         
         if (priceText && priceText.trim()) {
           // Patrón mejorado para precios de Amazon
@@ -79,19 +177,19 @@ async function extractPriceAndCurrencyAmazon(page, $) {
               moneda = currencyMap[symbol];
             }
             
-            console.log(`✓ Precio encontrado: ${moneda} ${precio}`);
+            logger.info(`✓ Precio encontrado: ${moneda} ${precio}`);
             break;
           }
         }
       }
     } catch (e) {
-      console.log(`Error en selector ${selector}:`, e.message);
+      logger.error(`Error en selector ${selector}:`, e.message);
     }
   }
   
   // 2. Buscar precio completo combinando whole + fraction (MEJORADO)
   if (!precio) {
-    console.log('2. Buscando precio completo (whole + fraction)...');
+    logger.info('2. Buscando precio completo (whole + fraction)...');
     try {
       // Buscar el precio principal del producto (no productos relacionados)
       const mainPriceContainer = await page.$('.a-price[data-a-size="medium_plus"][data-a-color="base"]') || 
@@ -119,7 +217,7 @@ async function extractPriceAndCurrencyAmazon(page, $) {
         }
         if (offscreenEl) {
           const offscreenText = await page.evaluate(el => el.textContent, offscreenEl);
-          console.log(`Offscreen text: "${offscreenText}"`);
+          logger.debug(`Offscreen text: "${offscreenText}"`);
           // Extraer precio completo del offscreen
           const offscreenMatch = offscreenText.match(/([\$€£¥₹])([0-9.,]+)/);
           if (offscreenMatch) {
@@ -127,12 +225,12 @@ async function extractPriceAndCurrencyAmazon(page, $) {
             precio = offscreenMatch[2].replace(',', '');
             const currencyMap = { '$': 'USD', '€': 'EUR', '£': 'GBP', '¥': 'JPY', '₹': 'INR' };
             moneda = currencyMap[symbol];
-            console.log(`✓ Precio desde offscreen: ${moneda} ${precio}`);
+            logger.info(`✓ Precio desde offscreen: ${moneda} ${precio}`);
             return { precio, moneda };
           }
         }
         
-        console.log(`Whole: "${whole}", Fraction: "${fraction}", Symbol: "${symbol}"`);
+        logger.debug(`Whole: "${whole}", Fraction: "${fraction}", Symbol: "${symbol}"`);
         
         if (whole) {
           precio = fraction ? `${whole}.${fraction}` : `${whole}.00`;
@@ -149,17 +247,17 @@ async function extractPriceAndCurrencyAmazon(page, $) {
             moneda = currencyMap[symbol] || symbol;
           }
           
-          console.log(`✓ Precio completo encontrado: ${moneda} ${precio}`);
+          logger.info(`✓ Precio completo encontrado: ${moneda} ${precio}`);
         }
       }
     } catch (e) {
-      console.log('Error en precio completo:', e.message);
+      logger.error('Error en precio completo:', e.message);
     }
   }
   
   // 3. Buscar en JSON-LD structured data
   if (!precio) {
-    console.log('3. Buscando en JSON-LD...');
+    logger.info('3. Buscando en JSON-LD...');
     const jsonLdScripts = await page.$$('script[type="application/ld+json"]');
     for (const script of jsonLdScripts) {
       const content = await page.evaluate(el => el.textContent, script);
@@ -169,7 +267,7 @@ async function extractPriceAndCurrencyAmazon(page, $) {
           if (data.offers.price) {
             precio = data.offers.price;
             moneda = data.offers.priceCurrency || '';
-            console.log(`✓ Precio JSON-LD encontrado: ${moneda} ${precio}`);
+            logger.info(`✓ Precio JSON-LD encontrado: ${moneda} ${precio}`);
             break;
           }
         }
@@ -179,7 +277,7 @@ async function extractPriceAndCurrencyAmazon(page, $) {
   
   // 4. Buscar en scripts embebidos de Amazon (más específicos)
   if (!precio) {
-    console.log('4. Buscando en scripts embebidos...');
+    logger.info('4. Buscando en scripts embebidos...');
     const allScripts = await page.$$eval('script', scripts => 
       scripts.map(s => s.textContent || s.innerHTML).filter(Boolean)
     );
@@ -204,7 +302,7 @@ async function extractPriceAndCurrencyAmazon(page, $) {
         const match = script.match(pattern);
         if (match && match[1]) {
           precio = match[1];
-          console.log(`✓ Precio en script ${i + 1}: ${precio}`);
+          logger.info(`✓ Precio en script ${i + 1}: ${precio}`);
           break;
         }
       }
@@ -214,7 +312,7 @@ async function extractPriceAndCurrencyAmazon(page, $) {
   
   // 5. Buscar en variables JavaScript específicas de Amazon
   if (!precio) {
-    console.log('5. Buscando en variables JavaScript...');
+    logger.info('5. Buscando en variables JavaScript...');
     try {
       const jsPrice = await page.evaluate(() => {
         // Buscar en variables globales de Amazon
@@ -232,16 +330,16 @@ async function extractPriceAndCurrencyAmazon(page, $) {
       
       if (jsPrice) {
         precio = jsPrice.toString();
-        console.log(`✓ Precio en JavaScript: ${precio}`);
+        logger.info(`✓ Precio en JavaScript: ${precio}`);
       }
     } catch (e) {
-      console.log('Error en JavaScript:', e.message);
+      logger.error('Error en JavaScript:', e.message);
     }
   }
   
   // 6. Fallback: buscar en todo el texto con patrones mejorados
   if (!precio) {
-    console.log('6. Búsqueda por texto plano...');
+    logger.info('6. Búsqueda por texto plano...');
     const allText = await page.evaluate(() => {
       return Array.from(document.querySelectorAll('*'))
         .map(el => el.textContent)
@@ -266,7 +364,7 @@ async function extractPriceAndCurrencyAmazon(page, $) {
       const matches = allText.match(pattern);
       if (matches && matches.length > 0) {
         const bestMatch = matches[0];
-        console.log(`Patrón encontrado: "${bestMatch}"`);
+        logger.debug(`Patrón encontrado: "${bestMatch}"`);
         
         // Extraer precio y moneda del patrón
         if (pattern.toString().includes('([A-Z]{1,3})')) {
@@ -292,16 +390,16 @@ async function extractPriceAndCurrencyAmazon(page, $) {
         }
         
         if (precio) {
-          console.log(`✓ Precio por texto plano: ${moneda} ${precio}`);
+          logger.info(`✓ Precio por texto plano: ${moneda} ${precio}`);
           break;
         }
       }
     }
   }
   
-  console.log(`=== RESULTADO FINAL AMAZON ===`);
-  console.log(`Precio: ${precio || 'NO ENCONTRADO'}`);
-  console.log(`Moneda: ${moneda || 'NO ENCONTRADA'}`);
+  logger.info(`=== RESULTADO FINAL AMAZON ===`);
+  logger.info(`Precio: ${precio || 'NO ENCONTRADO'}`);
+  logger.info(`Moneda: ${moneda || 'NO ENCONTRADA'}`);
   
   return { precio: precio || 'No encontrado', moneda: moneda || '' };
 }
@@ -336,7 +434,7 @@ async function scrapeAmazon(url) {
   const producto = await extractTitle(page, $);
   const { precio, moneda } = await extractPriceAndCurrencyAmazon(page, $);
   const imagen = await extractImage(page, $);
-  const empresa = extractCompany('amazon');
+  const empresa = extractCompany();
   const urlFinal = extractUrl(url);
 
   await browser.close();

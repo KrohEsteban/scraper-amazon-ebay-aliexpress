@@ -1,7 +1,98 @@
 
 const puppeteer = require('puppeteer');
 const cheerio = require('cheerio');
-const { extractTitle, extractImage, extractCompany, extractUrl } = require('./common');
+const Logger = require('../utils/logger');
+
+// Crear logger para eBay
+const logger = new Logger('EBAY');
+
+// --- Funciones específicas de eBay ---
+
+async function extractTitle(page, $) {
+  try {
+    // Buscar en meta tags primero (más confiable)
+    const ogTitle = $('meta[property="og:title"]').attr('content');
+    if (ogTitle && ogTitle.length > 0) {
+      const cleanTitle = ogTitle.replace(/\s*[-|]\s*eBay\s*\d*$/, '').trim();
+      if (cleanTitle) return cleanTitle;
+    }
+    
+    const twitterTitle = $('meta[name="twitter:title"]').attr('content');
+    if (twitterTitle && twitterTitle.length > 0) {
+      const cleanTitle = twitterTitle.replace(/\s*[-|]\s*eBay\s*\d*$/, '').trim();
+      if (cleanTitle) return cleanTitle;
+    }
+    
+    // Buscar en selectores específicos de eBay
+    const platformSelectors = [
+      'h1[data-testid="x-item-title"]',
+      '.x-item-title__mainTitle',
+      '.x-item-title',
+      'h1'
+    ];
+    
+    for (const selector of platformSelectors) {
+      const title = $(selector).first().text().trim();
+      if (title && title.length > 0) return title;
+    }
+    
+    // Fallback a title tag
+    const title = $('title').text().trim();
+    if (title && title.length > 0) {
+      const cleanTitle = title.replace(/\s*[-|]\s*eBay\s*\d*$/, '').trim();
+      if (cleanTitle) return cleanTitle;
+    }
+    
+    return 'Sin nombre';
+  } catch (e) {
+    return 'Sin nombre';
+  }
+}
+
+async function extractImage(page, $) {
+  let imagen = '';
+  
+  // Buscar en meta tags (más confiable)
+  imagen = $('meta[property="og:image"]').attr('content') || '';
+  if (imagen) return imagen;
+  
+  imagen = $('meta[name="twitter:image"]').attr('content') || '';
+  if (imagen) return imagen;
+  
+  // Buscar en el DOM con selectores específicos de eBay
+  const domSelectors = [
+    'img[data-testid="x-item-image"]',
+    '.ux-image-carousel-item img',
+    '.ux-image-magnify img',
+    '.ux-image-magnify__image',
+    'img[alt*="item"]',
+    'img[alt*="Item"]',
+    'img[alt*="product"]',
+    'img[alt*="Product"]'
+  ];
+  
+  for (const selector of domSelectors) {
+    try {
+      imagen = $(selector).first().attr('src') || $(selector).first().attr('data-src') || '';
+      if (imagen && imagen.length > 0) break;
+    } catch (e) {}
+  }
+  
+  return imagen || '';
+}
+
+function extractCompany() {
+  return 'eBay';
+}
+
+function extractUrl(url) {
+  try {
+    const urlObj = new URL(url);
+    return `${urlObj.protocol}//${urlObj.hostname}${urlObj.pathname}`;
+  } catch (error) {
+    return url;
+  }
+}
 
 // --- Función específica de eBay para precio y moneda ---
 
@@ -157,7 +248,7 @@ async function scrapeEbay(url) {
   const producto = await extractTitle(page, $);
   const { precio, moneda } = await extractPriceAndCurrencyEbay(page, $);
   const imagen = await extractImage(page, $);
-  const empresa = extractCompany('ebay');
+  const empresa = extractCompany();
   const urlFinal = extractUrl(url);
 
   await browser.close();
