@@ -648,6 +648,57 @@
                 <small style="color: #666;">Los cambios se aplican automáticamente a los cálculos. La cantidad de productos se especifica individualmente por cada URL.</small>
             </div>
 
+            <!-- Nueva sección de gestión de colecciones -->
+            <div class="collections-section" style="background: #e8f5e8; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 2px solid #4caf50;">
+                <h4>📁 Gestión de Colecciones de URLs</h4>
+                <p style="color: #2e7d32; margin-bottom: 15px; font-size: 0.9em;">
+                    Guarda y gestiona colecciones de URLs para reutilizarlas en diferentes dispositivos.
+                </p>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px;">
+                    <div>
+                        <label for="collection-name">Nombre de la colección:</label>
+                        <input type="text" id="collection-name" placeholder="Ej: Productos de Oficina" 
+                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <div style="display: flex; align-items: end; gap: 10px;">
+                        <button class="btn btn-success btn-sm" onclick="saveCurrentCollection()" style="flex: 1;">
+                            💾 Guardar Colección Actual
+                        </button>
+                        <button class="btn btn-warning btn-sm" onclick="loadCollection()" style="flex: 1;">
+                            📂 Cargar Colección
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="loadLastQuery()" style="flex: 1;">
+                            🔄 Cargar Última Consulta
+                        </button>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <label for="collection-select">Colecciones guardadas:</label>
+                        <select id="collection-select" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="">Seleccionar colección...</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; align-items: end; gap: 10px;">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="exportCollection()" style="flex: 1;">
+                            📤 Exportar JSON
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="importCollection()" style="flex: 1;">
+                            📥 Importar JSON
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="deleteCollection()" style="flex: 1;">
+                            🗑️ Eliminar
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="collections-info" style="margin-top: 15px; font-size: 0.85em; color: #666;">
+                    <!-- Información de colecciones se mostrará aquí -->
+                </div>
+            </div>
+
             <div class="action-buttons">
                 <button class="btn btn-primary" onclick="compareProducts()">⚖️ Comparar Precios</button>
                 <button class="btn btn-secondary" onclick="clearAll()">🗑️ Limpiar Todo</button>
@@ -776,6 +827,350 @@
             return Math.round(pricePerUnit).toLocaleString('es-AR');
         }
 
+        // ===== GESTIÓN DE COLECCIONES DE URLs =====
+        
+        // Cargar colecciones al iniciar
+        let collections = JSON.parse(localStorage.getItem('url-collections') || '[]');
+        
+        // Función para guardar colecciones en localStorage
+        function saveCollections() {
+            localStorage.setItem('url-collections', JSON.stringify(collections));
+            updateCollectionsSelect();
+            updateCollectionsInfo();
+        }
+        
+        // Función para actualizar el select de colecciones
+        function updateCollectionsSelect() {
+            const select = document.getElementById('collection-select');
+            const currentValue = select.value;
+            
+            // Limpiar opciones existentes
+            select.innerHTML = '<option value="">Seleccionar colección...</option>';
+            
+            // Agregar colecciones
+            collections.forEach(collection => {
+                const option = document.createElement('option');
+                option.value = collection.id;
+                option.textContent = `${collection.name} (${collection.urls.length} URLs)`;
+                select.appendChild(option);
+            });
+            
+            // Restaurar valor seleccionado si existe
+            if (currentValue) {
+                select.value = currentValue;
+            }
+        }
+        
+        // Función para actualizar información de colecciones
+        function updateCollectionsInfo() {
+            const infoDiv = document.getElementById('collections-info');
+            if (collections.length === 0) {
+                infoDiv.innerHTML = '📝 No hay colecciones guardadas. Crea una nueva colección para empezar.';
+                return;
+            }
+            
+            const totalUrls = collections.reduce((total, collection) => total + collection.urls.length, 0);
+            infoDiv.innerHTML = `
+                📊 <strong>${collections.length}</strong> colecciones guardadas con <strong>${totalUrls}</strong> URLs en total.
+                Última actualización: ${new Date().toLocaleString('es-AR')}
+            `;
+        }
+        
+        // Función para guardar la colección actual
+        function saveCurrentCollection() {
+            const name = document.getElementById('collection-name').value.trim();
+            if (!name) {
+                alert('Por favor, ingresa un nombre para la colección');
+                return;
+            }
+            
+            // Obtener URLs y cantidades actuales
+            const urlInputs = document.querySelectorAll('#url-inputs .url-input-group');
+            const currentUrls = Array.from(urlInputs).map(group => {
+                const urlInput = group.querySelector('.url-input');
+                const quantityInput = group.querySelector('.quantity-input');
+                return {
+                    url: urlInput.value.trim(),
+                    quantity: parseInt(quantityInput.value) || 1
+                };
+            }).filter(item => item.url !== '');
+            
+            if (currentUrls.length === 0) {
+                alert('No hay URLs para guardar. Agrega al menos una URL.');
+                return;
+            }
+            
+            // Verificar si ya existe una colección con ese nombre
+            const existingIndex = collections.findIndex(c => c.name.toLowerCase() === name.toLowerCase());
+            
+            if (existingIndex !== -1) {
+                if (!confirm(`Ya existe una colección llamada "${name}". ¿Quieres sobrescribirla?`)) {
+                    return;
+                }
+                collections[existingIndex] = {
+                    id: collections[existingIndex].id,
+                    name: name,
+                    urls: currentUrls,
+                    createdAt: collections[existingIndex].createdAt,
+                    updatedAt: new Date().toISOString()
+                };
+            } else {
+                // Crear nueva colección
+                const newCollection = {
+                    id: Date.now().toString(),
+                    name: name,
+                    urls: currentUrls,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                collections.push(newCollection);
+            }
+            
+            saveCollections();
+            document.getElementById('collection-name').value = '';
+            alert(`✅ Colección "${name}" guardada exitosamente con ${currentUrls.length} URLs`);
+        }
+        
+        // Función para cargar una colección
+        function loadCollection() {
+            const select = document.getElementById('collection-select');
+            const selectedId = select.value;
+            
+            if (!selectedId) {
+                alert('Por favor, selecciona una colección para cargar');
+                return;
+            }
+            
+            const collection = collections.find(c => c.id === selectedId);
+            if (!collection) {
+                alert('Colección no encontrada');
+                return;
+            }
+            
+            // Limpiar URLs actuales
+            clearAll();
+            
+            // Cargar URLs de la colección
+            collection.urls.forEach((item, index) => {
+                if (index > 0) {
+                    addUrlInput();
+                }
+                
+                const urlInputs = document.querySelectorAll('#url-inputs .url-input-group');
+                const currentGroup = urlInputs[index];
+                
+                if (currentGroup) {
+                    const urlInput = currentGroup.querySelector('.url-input');
+                    const quantityInput = currentGroup.querySelector('.quantity-input');
+                    
+                    urlInput.value = item.url;
+                    quantityInput.value = item.quantity;
+                }
+            });
+            
+            alert(`✅ Colección "${collection.name}" cargada exitosamente`);
+        }
+        
+        // Función para exportar colección como JSON
+        function exportCollection() {
+            const select = document.getElementById('collection-select');
+            const selectedId = select.value;
+            
+            if (!selectedId) {
+                alert('Por favor, selecciona una colección para exportar');
+                return;
+            }
+            
+            const collection = collections.find(c => c.id === selectedId);
+            if (!collection) {
+                alert('Colección no encontrada');
+                return;
+            }
+            
+            // Crear archivo JSON
+            const dataStr = JSON.stringify(collection, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            // Descargar archivo
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${collection.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_collection.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            alert(`✅ Colección "${collection.name}" exportada exitosamente`);
+        }
+        
+        // Función para importar colección desde JSON
+        function importCollection() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const collection = JSON.parse(e.target.result);
+                        
+                        // Validar estructura del archivo
+                        if (!collection.name || !collection.urls || !Array.isArray(collection.urls)) {
+                            alert('❌ Archivo JSON inválido. Debe contener "name" y "urls"');
+                            return;
+                        }
+                        
+                        // Verificar si ya existe una colección con ese nombre
+                        const existingIndex = collections.findIndex(c => c.name.toLowerCase() === collection.name.toLowerCase());
+                        
+                        if (existingIndex !== -1) {
+                            if (!confirm(`Ya existe una colección llamada "${collection.name}". ¿Quieres sobrescribirla?`)) {
+                                return;
+                            }
+                            collection.id = collections[existingIndex].id;
+                            collection.createdAt = collections[existingIndex].createdAt;
+                            collection.updatedAt = new Date().toISOString();
+                            collections[existingIndex] = collection;
+                        } else {
+                            // Crear nueva colección
+                            collection.id = Date.now().toString();
+                            collection.createdAt = new Date().toISOString();
+                            collection.updatedAt = new Date().toISOString();
+                            collections.push(collection);
+                        }
+                        
+                        saveCollections();
+                        alert(`✅ Colección "${collection.name}" importada exitosamente con ${collection.urls.length} URLs`);
+                        
+                    } catch (error) {
+                        alert('❌ Error al leer el archivo JSON: ' + error.message);
+                    }
+                };
+                
+                reader.readAsText(file);
+            };
+            
+            input.click();
+        }
+        
+        // Función para eliminar colección
+        function deleteCollection() {
+            const select = document.getElementById('collection-select');
+            const selectedId = select.value;
+            
+            if (!selectedId) {
+                alert('Por favor, selecciona una colección para eliminar');
+                return;
+            }
+            
+            const collection = collections.find(c => c.id === selectedId);
+            if (!collection) {
+                alert('Colección no encontrada');
+                return;
+            }
+            
+            if (!confirm(`¿Estás seguro de que quieres eliminar la colección "${collection.name}"? Esta acción no se puede deshacer.`)) {
+                return;
+            }
+            
+            collections = collections.filter(c => c.id !== selectedId);
+            saveCollections();
+            select.value = '';
+            
+            alert(`✅ Colección "${collection.name}" eliminada exitosamente`);
+        }
+        
+        // Función para guardar la última consulta realizada
+        function saveLastQuery() {
+            // Obtener URLs y cantidades actuales
+            const urlInputs = document.querySelectorAll('#url-inputs .url-input-group');
+            const currentUrls = Array.from(urlInputs).map(group => {
+                const urlInput = group.querySelector('.url-input');
+                const quantityInput = group.querySelector('.quantity-input');
+                return {
+                    url: urlInput.value.trim(),
+                    quantity: parseInt(quantityInput.value) || 1
+                };
+            }).filter(item => item.url !== '');
+            
+            if (currentUrls.length === 0) {
+                alert('No hay URLs para guardar');
+                return;
+            }
+            
+            // Crear o actualizar la colección "Última Consulta"
+            const lastQueryCollection = {
+                id: 'last-query',
+                name: 'Última Consulta',
+                urls: currentUrls,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            
+            // Buscar si ya existe
+            const existingIndex = collections.findIndex(c => c.id === 'last-query');
+            
+            if (existingIndex !== -1) {
+                collections[existingIndex] = lastQueryCollection;
+            } else {
+                collections.push(lastQueryCollection);
+            }
+            
+            saveCollections();
+            
+            // Seleccionar automáticamente en el dropdown
+            document.getElementById('collection-select').value = 'last-query';
+            
+            alert(`✅ Última consulta guardada exitosamente con ${currentUrls.length} URLs`);
+        }
+        
+        // Función para cargar la última consulta guardada
+        function loadLastQuery() {
+            const lastQuery = collections.find(c => c.id === 'last-query');
+            
+            if (!lastQuery) {
+                alert('No hay una última consulta guardada');
+                return;
+            }
+            
+            // Limpiar URLs actuales
+            clearAll();
+            
+            // Cargar URLs de la última consulta
+            lastQuery.urls.forEach((item, index) => {
+                if (index > 0) {
+                    addUrlInput();
+                }
+                
+                const urlInputs = document.querySelectorAll('#url-inputs .url-input-group');
+                const currentGroup = urlInputs[index];
+                
+                if (currentGroup) {
+                    const urlInput = currentGroup.querySelector('.url-input');
+                    const quantityInput = currentGroup.querySelector('.quantity-input');
+                    
+                    urlInput.value = item.url;
+                    quantityInput.value = item.quantity;
+                }
+            });
+            
+            // Seleccionar en el dropdown
+            document.getElementById('collection-select').value = 'last-query';
+            
+            alert(`✅ Última consulta cargada exitosamente con ${lastQuery.urls.length} URLs`);
+        }
+        
+        // Inicializar colecciones al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCollectionsSelect();
+            updateCollectionsInfo();
+        });
+
         // Función para obtener URL corta
         function getShortUrl(url) {
             try {
@@ -887,6 +1282,19 @@
                         <div class="stat-label">Duración</div>
                     </div>
                 </div>
+                
+                <!-- Botón para guardar consulta actual -->
+                <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 10px; border: 2px dashed #dee2e6;">
+                    <p style="margin-bottom: 10px; color: #6c757d; font-size: 0.9em;">
+                        💡 ¿Quieres guardar esta consulta para reutilizarla más tarde?
+                    </p>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="saveLastQuery()" style="margin-right: 10px;">
+                        💾 Guardar como "Última Consulta"
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('collection-name').focus()">
+                        📝 Crear Nueva Colección
+                    </button>
+                </div>
             `;
 
             if (data.results.length > 0) {
@@ -994,7 +1402,7 @@
                         ${currencyInfo}
                         <div class="product-url">
                             <a href="${url}" target="_blank" class="url-link" title="Abrir producto en nueva pestaña">
-                                ${getShortUrl(url)}
+                                ${url}
                             </a>
                         </div>
                     </div>
